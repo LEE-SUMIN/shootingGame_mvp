@@ -2,10 +2,6 @@ package com.example.shootinggame_mvp;
 
 import com.example.shootinggame_mvp.Model.Bullet;
 import com.example.shootinggame_mvp.Model.Enemy;
-import com.example.shootinggame_mvp.Model.StepInfo;
-
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TimerTask;
 
