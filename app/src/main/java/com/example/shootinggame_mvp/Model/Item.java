@@ -22,5 +22,7 @@ public abstract class Item {
         return y;
     }
 
+    public int getId() { return id; }
+
     public abstract void move();
 }

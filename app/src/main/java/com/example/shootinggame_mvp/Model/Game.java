@@ -25,6 +25,7 @@ public class Game {
     private com.example.shootinggame_mvp.Model.Cannon cannon;
     private HashMap<Integer, Bullet> bulletHashMap;
     private HashMap<Integer, Enemy> enemyHashMap;
+    private StepInfo stepInfo;
     
     private boolean running = false; // 게임 진행 상태
 
@@ -89,6 +90,7 @@ public class Game {
         this.bulletLimit = bulletLimit;
         this.bulletId = 0;
         this.enemyId = 0;
+        this.stepInfo = new StepInfo(lifeLimit);
 
         this.bulletHashMap = new HashMap<>();
         this.enemyHashMap = new HashMap<>();
@@ -101,7 +103,8 @@ public class Game {
     /**
      * TimerTask 내에서 주기적으로 호출되며 화면 상에 존재하는 bullet과 enemy 위치 조정
      */
-    public StepInfo update() {
+    public StepInfo step() {
+        stepInfo.clear();
         //enemy를 생성해야 하는 step인지 확인하고, enemy 생성
         if(step == enemyGenStep) {
             addEnemy();
@@ -116,27 +119,15 @@ public class Game {
         updateEnemiesPosition();
         //충돌 감지
         removeConflictingBulletAndEnemy();
-        //현재 존재하는 bullet, enemy와 남은 life 개수 리턴
-        StepInfo stepInfo = new StepInfo(life, bulletHashMap, enemyHashMap);
-        
+
+        //TODO: stepInfo 세팅
+
         return stepInfo;
     }
 
 
-    public int getLife() {
-        return life;
-    }
-
     public Cannon getCannon() {
         return cannon;
-    }
-
-    public Bullet getBullet(int id) {
-        return bulletHashMap.get(id);
-    }
-
-    public Enemy getEnemy(int id) {
-        return enemyHashMap.get(id);
     }
 
 
@@ -149,6 +140,7 @@ public class Game {
         int id = genBulletId();
         Bullet bullet = new Bullet(id, cannon.getAngle());
         bulletHashMap.put(id, bullet);
+        stepInfo.addAliveBullet(bullet);
     }
 
 
@@ -159,6 +151,7 @@ public class Game {
         int id = genEnemyId();
         Enemy enemy = new Enemy(id);
         enemyHashMap.put(id, enemy);
+        stepInfo.addAliveEnemy(enemy);
     }
 
 
@@ -186,7 +179,7 @@ public class Game {
                 Bullet b = bulletHashMap.get(i);
                 b.move();
                 if(b.getY() < 0) { //bullet이 화면 밖으로 벗어나면
-                    bulletHashMap.remove(i);
+                    removeBullet(b);
                 }
             }
         }
@@ -202,7 +195,7 @@ public class Game {
                 Enemy e = enemyHashMap.get(i);
                 e.move();
                 if(e.getY() > virtualHeight) { //enemy가 땅에 닿으면
-                    enemyHashMap.remove(i);
+                    removeEnemy(e);
                     decreaseLife();
                 }
             }
@@ -217,10 +210,10 @@ public class Game {
         for(int eid = 0; eid < maxEnemyId; eid++) {
             if(enemyHashMap.containsKey(eid)) {
                 Enemy e = enemyHashMap.get(eid);
-                int bid = findConflictingBullet(e);
-                if(bid >= 0) {
-                    enemyHashMap.remove(eid);
-                    bulletHashMap.remove(bid);
+                Bullet b = findConflictingBullet(e);
+                if(b != null) {
+                    removeBullet(b);
+                    removeEnemy(e);
                 }
             }
         }
@@ -232,7 +225,7 @@ public class Game {
      * @param e : Enemy
      * @return
      */
-    private int findConflictingBullet(Enemy e) {
+    private Bullet findConflictingBullet(Enemy e) {
         for(int bid = 0; bid < maxBulletId; bid++) {
             if(bulletHashMap.containsKey(bid)) {
 
@@ -243,12 +236,12 @@ public class Game {
 
                 //bullet과 enemy가 충돌하는지 검사
                 if(checkConflictBetweenEnemyAndBullet(e, b)) {
-                    return bid;
+                    return b;
                 }
 
             }
         }
-        return -1;
+        return null;
     }
 
 
@@ -308,9 +301,20 @@ public class Game {
      */
     private void decreaseLife() {
         life--;
+        stepInfo.decreaseLife();
         //생명이 모두 소모되면 게임 종료 상태로 전환
         if(life == 0) {
             running = false;
         }
+    }
+
+    private void removeBullet(Bullet b) {
+        bulletHashMap.remove(b.getId());
+        stepInfo.addRemovedBullet(b);
+    }
+
+    private void removeEnemy(Enemy e) {
+        enemyHashMap.remove(e.getId());
+        stepInfo.addRemovedEnemy(e);
     }
 }

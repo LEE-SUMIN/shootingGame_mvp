@@ -32,10 +32,11 @@ public class MainPresenter implements Contract.Presenter {
         TimerTask stepTimerTask = new TimerTask() {
             @Override
             public void run() {
-                StepInfo stepInfo = game.update();
+                StepInfo stepInfo = game.step();
+
                 view.setLifeViews(stepInfo.getLife());
-                view.setBulletViews(stepInfo.getBulletHashMap());
-                view.setEnemyViews(stepInfo.getEnemyHashMap());
+                view.setBulletViews(stepInfo.getAliveBulletHashMap(), stepInfo.getRemovedBulletHashMap());
+                view.setEnemyViews(stepInfo.getAliveEnemyHashMap(), stepInfo.getRemovedEnemyHashMap());
 
                 if(game.gameOver()) {
                     timer.cancel();

@@ -4,6 +4,8 @@ import com.example.shootinggame_mvp.Model.Bullet;
 import com.example.shootinggame_mvp.Model.Enemy;
 import com.example.shootinggame_mvp.Model.StepInfo;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TimerTask;
 
@@ -12,8 +14,8 @@ public interface Contract {
         void start();
 
         void setLifeViews(int life);
-        void setBulletViews(HashMap<Integer, Bullet> bulletHashMap);
-        void setEnemyViews(HashMap<Integer, Enemy> enemyHashMap);
+        void setBulletViews(HashMap<Integer, Bullet> alivedBulletList, HashMap<Integer, Bullet> removedBulletList);
+        void setEnemyViews(HashMap<Integer, Enemy> alivedEnemyList, HashMap<Integer, Enemy> removedEnemyList);
 
         void readyForRestart();
     }
@@ -22,6 +24,7 @@ public interface Contract {
         void setVirtualCoordinates(float displayRatio);
         void setStart(int lifeLimit, int bulletLimit);
         TimerTask startStepTimerTask();
+
         void setAngle(int angle);
         void addBullet();
     }

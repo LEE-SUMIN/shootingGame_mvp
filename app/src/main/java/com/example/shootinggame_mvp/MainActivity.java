@@ -17,6 +17,7 @@ import com.example.shootinggame_mvp.Model.Enemy;
 import com.example.shootinggame_mvp.Model.Game;
 import com.example.shootinggame_mvp.Model.StepInfo;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 
@@ -41,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
     //----------------------------------------------------------------------------
     // Dynamic UI References.
     //
+
     private ImageView[] lifeViews;
     private HashMap<Integer, ImageView> enemyViews;
     private HashMap<Integer, ImageView> bulletViews;
@@ -48,10 +50,15 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
     private int realDisplayHeight;
     private int realDisplayWidth;
 
+
+    //----------------------------------------------------------------------------
+    // MVP.
+    //
+
     MainPresenter presenter;
 
     //----------------------------------------------------------------------------
-    // Instance variables.
+    // Life cycle.
     //
 
     @Override
@@ -102,6 +109,107 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
 
     }
 
+    //----------------------------------------------------------------------------
+    // Implements Presenter.
+    //
+
+
+    @Override
+    public void start() {
+        start.setVisibility(View.GONE);
+        // game 시작 상태로 변경, 게임 변수 초기화
+        presenter.setStart(lifeLimit, bulletLimit);
+        // 게임 진행
+        presenter.startStepTimerTask();
+    }
+
+
+    @Override
+    public void setLifeViews(int life) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                for(int i = 0; i < lifeViews.length; i++) {
+                    // 남은 생명 개수 만큼 보이게
+                    if(i < life) {
+                        lifeViews[i].setVisibility(View.VISIBLE);
+                    }
+                    // 나머지는 안 보이도록
+                    else {
+                        lifeViews[i].setVisibility(View.GONE);
+                    }
+                }
+            }
+        });
+
+    }
+
+    @Override
+    public void setBulletViews(HashMap<Integer, Bullet> alivedBulletHashMap, HashMap<Integer, Bullet> removedBulletHashMap) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                for(Bullet b : alivedBulletHashMap.values()) {
+                    int id = b.getId();
+                    if(!bulletViews.containsKey(id)) {
+                        bulletViews.put(id, addBulletImageView());
+                    }
+                    ImageView bulletImage = bulletViews.get(id);
+                    bulletImage.setX(virtualPositionToRealPosition_X(b.getX()));
+                    bulletImage.setY(virtualPositionToRealPosition_Y(b.getY()));
+                }
+
+                for(Bullet b : removedBulletHashMap.values()) {
+                    int id = b.getId();
+                    bulletViews.get(id).setVisibility(View.GONE);
+                    bulletViews.remove(id);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void setEnemyViews(HashMap<Integer, Enemy> alivedEnemyHashMap, HashMap<Integer, Enemy> removedEnemyHashMap) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                for(Enemy e : alivedEnemyHashMap.values()) {
+                    int id = e.getId();
+                    if(!enemyViews.containsKey(id)) {
+                        enemyViews.put(id, addEnemyImageView());
+                    }
+                    ImageView enemyImage = enemyViews.get(id);
+                    enemyImage.setX(virtualPositionToRealPosition_X(e.getX()));
+                    enemyImage.setY(virtualPositionToRealPosition_Y(e.getY()));
+                }
+
+                for(Enemy e : removedEnemyHashMap.values()) {
+                    int id = e.getId();
+                    enemyViews.get(id).setVisibility(View.GONE);
+                    enemyViews.remove(id);
+                }
+            }
+        });
+    }
+
+
+    @Override
+    public void readyForRestart() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                clearViews();
+                start.setText("restart");
+                start.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+
+    //----------------------------------------------------------------------
+    // Internal support methods.
+    //
+
     /**
      * 화면 가로 & 세로 크기 변수 세팅
      */
@@ -112,6 +220,7 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
         realDisplayWidth = size.x;
         realDisplayHeight = (int) (size.y * 0.75);
     }
+
 
     public void setUpUI() {
         infoLayout = (LinearLayout) findViewById(R.id.info);
@@ -124,12 +233,14 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
         setUpDynamicUI();
     }
 
+
     public void setUpDynamicUI() {
         // 동적 ImageView 관리
         setUpLifeViewList();
         enemyViews = new HashMap<>();
         bulletViews = new HashMap<>();
     }
+
 
     private void setUpLifeViewList() {
         lifeViews = new ImageView[lifeLimit];
@@ -138,31 +249,12 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
         }
     }
 
-    @Override
-    public void start() {
-        start.setVisibility(View.GONE);
-        presenter.setStart(lifeLimit, bulletLimit);
-        presenter.startStepTimerTask();
-    }
 
-    public void rotateCannonView(int progress) {
+    private void rotateCannonView(int progress) {
         //cannon 이미지뷰 회전
         spaceship.setRotation(progress - 90);
     }
 
-    @Override
-    public void setLifeViews(int life) {
-        for(int i = 0; i < lifeViews.length; i++) {
-            // 남은 생명 개수 만큼 보이게
-            if(i < life) {
-                lifeViews[i].setVisibility(View.VISIBLE);
-            }
-            // 나머지는 안 보이도록
-            else {
-                lifeViews[i].setVisibility(View.GONE);
-            }
-        }
-    }
 
     /**
      * 생명 ImageView 생성
@@ -218,49 +310,6 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
         return enemyImage;
     }
 
-    @Override
-    public void setBulletViews(HashMap<Integer, Bullet> bulletHashMap) {
-        for(int id : bulletHashMap.keySet()) { //game에 존재하는 bullet이지만, view가 갖고 있지 않은 경우, 새로 생성된 bullet이므로 ImageView 생성
-            if(!bulletViews.containsKey(id)) {
-                bulletViews.put(id, addBulletImageView());
-            }
-        }
-        
-        for(int id : bulletViews.keySet()) {
-            if(bulletHashMap.containsKey(id)) {
-                Bullet b = bulletHashMap.get(id);
-                ImageView bulletImage = bulletViews.get(id);
-                bulletImage.setX(virtualPositionToRealPosition_X(b.getX()));
-                bulletImage.setY(virtualPositionToRealPosition_Y(b.getY()));
-            }
-            else { // view에는 존재하지만 game에 존재하지 않는 경우, 제거된 bullet이므로 ImageView 제거
-                bulletViews.get(id).setVisibility(View.GONE);
-                bulletViews.remove(id);
-            }
-        }
-    }
-
-    @Override
-    public void setEnemyViews(HashMap<Integer, Enemy> enemyHashMap) {
-        for(int id : enemyHashMap.keySet()) { //game에 존재하는 enemy이지만, view가 갖고 있지 않은 경우, 새로 생성된 enemy이므로 ImageView 생성
-            if(!enemyViews.containsKey(id)) {
-                enemyViews.put(id, addEnemyImageView());
-            }
-        }
-
-        for(int id : enemyViews.keySet()) {
-            if(enemyHashMap.containsKey(id)) {
-                Enemy e = enemyHashMap.get(id);
-                ImageView enemyImage = enemyViews.get(id);
-                enemyImage.setX(virtualPositionToRealPosition_X(e.getX()));
-                enemyImage.setY(virtualPositionToRealPosition_Y(e.getY()));
-            }
-            else { // view에는 존재하지만 game에 존재하지 않는 경우, 제거된 enemy이므로 ImageView 제거
-                enemyViews.get(id).setVisibility(View.GONE);
-                enemyViews.remove(id);
-            }
-        }
-    }
 
     /**
      * 가상 X좌표 -> 실제 X좌표로 변환
@@ -281,14 +330,15 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
         return (realDisplayHeight / Game.virtualHeight) * virtualY;
     }
 
-    @Override
-    public void readyForRestart() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                start.setText("restart");
-                start.setVisibility(View.VISIBLE);
-            }
-        });
+    private void clearViews() {
+        for(ImageView view : bulletViews.values()) {
+            view.setVisibility(View.GONE);
+        }
+        bulletViews.clear();
+        for(ImageView view : enemyViews.values()) {
+            view.setVisibility(View.GONE);
+        }
+        enemyViews.clear();
+
     }
 }
