@@ -105,27 +105,33 @@ public class Game {
      */
     public StepInfo step() {
         stepInfo.clear();
-        //enemy를 생성해야 하는 step인지 확인하고, enemy 생성
+        
+        // enemy를 생성해야 하는 step인지 확인하고, enemy 생성
         if(step == enemyGenStep) {
             addEnemy();
-            //다음 enemy 생성 step 결정
+            // 다음 enemy 생성 step 결정
             enemyGenStep = (int)(Math.random() * 300 + 50) + step;
         }
+        
         step++;
 
-        //bullet 위치 이동
+        // bullet 위치 이동
         updateBulletsPosition();
-        //enemy 위치 이동
+        
+        // enemy 위치 이동
         updateEnemiesPosition();
-        //충돌 감지
+        
+        // 충돌 감지
         removeConflictingBulletAndEnemy();
-
-        //TODO: stepInfo 세팅
 
         return stepInfo;
     }
 
 
+    /**
+     * 외부에서 Cannon에 접근하기 위한 메서드
+     * @return
+     */
     public Cannon getCannon() {
         return cannon;
     }
@@ -156,11 +162,11 @@ public class Game {
 
 
     /**
-     * 게임이 진행 중인 상태인지 확인
+     * 게임 실행 상태 확인
      * @return
      */
     public boolean gameOver() {
-        return running ? false : true;
+        return !running;
     }
 
 
@@ -175,10 +181,12 @@ public class Game {
      */
     private void updateBulletsPosition() {
         for(int i = 0; i < maxBulletId; i++) {
+            
             if(bulletHashMap.containsKey(i)) {
                 Bullet b = bulletHashMap.get(i);
                 b.move();
-                if(b.getY() < 0) { //bullet이 화면 밖으로 벗어나면
+                
+                if(b.getY() < 0) { //bullet이 화면 밖으로 벗어나면 제거
                     removeBullet(b);
                 }
             }
@@ -191,10 +199,12 @@ public class Game {
      */
     private void updateEnemiesPosition() {
         for(int i = 0; i < maxEnemyId; i++) {
+            
             if(enemyHashMap.containsKey(i)) {
                 Enemy e = enemyHashMap.get(i);
                 e.move();
-                if(e.getY() > virtualHeight) { //enemy가 땅에 닿으면
+
+                if(e.getY() > virtualHeight) { //enemy가 땅에 닿으면 제거
                     removeEnemy(e);
                     decreaseLife();
                 }
@@ -204,7 +214,7 @@ public class Game {
 
 
     /**
-     * 충돌 감지
+     * 충돌하는 Bullet과 Enemy가 있는지 검사하고, 존재하면 제거
      */
     private void removeConflictingBulletAndEnemy() {
         for(int eid = 0; eid < maxEnemyId; eid++) {
@@ -221,7 +231,7 @@ public class Game {
 
 
     /**
-     * 특정 Enemy와 충돌하는 Bullet의 id 리턴, 없으면 -1
+     * 특정 Enemy와 충돌하는 Bullet 탐색 후 리턴
      * @param e : Enemy
      * @return
      */
@@ -297,22 +307,31 @@ public class Game {
 
 
     /**
-     * 생명 1 만큼 감소
+     * 생명 1개 감소
      */
     private void decreaseLife() {
         life--;
         stepInfo.decreaseLife();
+        
         //생명이 모두 소모되면 게임 종료 상태로 전환
         if(life == 0) {
             running = false;
         }
     }
 
+    /**
+     * 화면 상에 존재하던 Bullet 제거
+     * @param b
+     */
     private void removeBullet(Bullet b) {
         bulletHashMap.remove(b.getId());
         stepInfo.addRemovedBullet(b);
     }
 
+    /**
+     * 화면 상에 존재하던 enemy 제거
+     * @param e
+     */
     private void removeEnemy(Enemy e) {
         enemyHashMap.remove(e.getId());
         stepInfo.addRemovedEnemy(e);

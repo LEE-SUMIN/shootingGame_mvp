@@ -5,7 +5,7 @@ public class Enemy extends Item {
     // Constant definitions.
     //
 
-    public static final int height = 10;
+    public static final int height = 10; // 화면 너비 100을 기준으로 했을 때, enemy의 크기
     public static final int width = 10;
 
     //----------------------------------------------------------------------------
@@ -27,7 +27,7 @@ public class Enemy extends Item {
     //
 
     /**
-     * Timertask 내에서 주기적으로 호출되며 enemy의 위치가 dx, dy 만큼 이동함
+     * Timertask 내에서 주기적으로 호출되며 enemy의 위치가 단위 벡터(dx, dy) 만큼 이동함
      */
     @Override
     public void move() {

@@ -5,7 +5,7 @@ public class Cannon {
     // Instance variables.
     //
 
-    private int angle;
+    private int angle; // cannon의 발사 각도
 
 
     //----------------------------------------------------------------------------

@@ -15,11 +15,8 @@ import android.widget.SeekBar;
 import com.example.shootinggame_mvp.Model.Bullet;
 import com.example.shootinggame_mvp.Model.Enemy;
 import com.example.shootinggame_mvp.Model.Game;
-import com.example.shootinggame_mvp.Model.StepInfo;
-
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Timer;
+
 
 public class MainActivity extends AppCompatActivity implements Contract.View {
     //----------------------------------------------------------------------------
@@ -57,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
 
     MainPresenter presenter;
 
+
     //----------------------------------------------------------------------------
     // Life cycle.
     //
@@ -67,24 +65,40 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
         setContentView(R.layout.activity_main);
 
         presenter = new MainPresenter(this);
-
+        
+        // 실제 화면 크기 변수 세팅
         setDisplayVariables();
+        
+        // 가상 좌표계 세팅 : 가로 크기 100을 기준으로 화면 비율에 맞게 설정한다.
         float displayRatio = realDisplayHeight / realDisplayWidth;
         presenter.setVirtualCoordinates(displayRatio);
-
+        
+        // UI 세팅
         setUpUI();
+        
 
+        // start 버튼 클릭 -> 게임 시작
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                start();
+                start.setVisibility(View.GONE);
+                
+                // (1) game 시작 상태로 변경, 게임 변수 초기화
+                presenter.setStart(lifeLimit, bulletLimit);
+                
+                // (2) 게임 진행
+                presenter.startStepTimerTask();
             }
         });
 
+
+        // seekBar 조정 -> Cannon 각도 조정
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // (1) Cannon에 각도 값 설정
                 presenter.setAngle(progress);
+                // (2) Cannon ImageView 회전
                 rotateCannonView(progress);
             }
 
@@ -99,31 +113,28 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
             }
         });
 
+
+        // shoot 버튼 클릭 -> Bullet 생성
         btnShoot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Bullet 추가
                 presenter.addBullet();
             }
         });
-
-
     }
+    
+
+
 
     //----------------------------------------------------------------------------
-    // Implements Presenter.
+    // Implements Contract.View
     //
 
-
-    @Override
-    public void start() {
-        start.setVisibility(View.GONE);
-        // game 시작 상태로 변경, 게임 변수 초기화
-        presenter.setStart(lifeLimit, bulletLimit);
-        // 게임 진행
-        presenter.startStepTimerTask();
-    }
-
-
+    /**
+     * 남은 생명 개수 만큼 하트 ImageView 보여주기
+     * @param life : 남은 생명 개수
+     */
     @Override
     public void setLifeViews(int life) {
         runOnUiThread(new Runnable() {
@@ -134,31 +145,42 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
                     if(i < life) {
                         lifeViews[i].setVisibility(View.VISIBLE);
                     }
-                    // 나머지는 안 보이도록
+                    
+                    // 나머지는 안 보이게
                     else {
                         lifeViews[i].setVisibility(View.GONE);
                     }
                 }
             }
         });
-
     }
 
+
+    /**
+     * 화면 상에 존재하는 Bullet ImageView 보여주고, 사라진 Bullet ImageView 제거
+     * @param alivedBulletHashMap : 화면 상에 존재하는 Bullet
+     * @param removedBulletHashMap : 사라진 Bullet
+     */
     @Override
     public void setBulletViews(HashMap<Integer, Bullet> alivedBulletHashMap, HashMap<Integer, Bullet> removedBulletHashMap) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                // 해당 step에서 화면 상에 존재하는 Bullet의 ImageView 좌표 설정
                 for(Bullet b : alivedBulletHashMap.values()) {
                     int id = b.getId();
+                    
+                    // 이번 step에 새로 생성된 bullet -> ImageView 생성
                     if(!bulletViews.containsKey(id)) {
                         bulletViews.put(id, addBulletImageView());
                     }
+                    
                     ImageView bulletImage = bulletViews.get(id);
                     bulletImage.setX(virtualPositionToRealPosition_X(b.getX()));
                     bulletImage.setY(virtualPositionToRealPosition_Y(b.getY()));
                 }
-
+                
+                // 해당 step에서 사라진 Bullet의 ImageView 제거
                 for(Bullet b : removedBulletHashMap.values()) {
                     int id = b.getId();
                     bulletViews.get(id).setVisibility(View.GONE);
@@ -168,21 +190,32 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
         });
     }
 
+
+    /**
+     * 화면 상에 존재하는 Enemy ImageView 보여주고, 사라진 Enemy ImageView 제거
+     * @param alivedEnemyHashMap : 화면 상에 존재하는 Enemy
+     * @param removedEnemyHashMap : 사라진 Enemy
+     */
     @Override
     public void setEnemyViews(HashMap<Integer, Enemy> alivedEnemyHashMap, HashMap<Integer, Enemy> removedEnemyHashMap) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                // 해당 step에서 화면 상에 존재하는 Enemy의 ImageView 좌표 설정
                 for(Enemy e : alivedEnemyHashMap.values()) {
                     int id = e.getId();
+                    
+                    // 이번 step에 새로 생성된 enemy -> ImageView 생성
                     if(!enemyViews.containsKey(id)) {
                         enemyViews.put(id, addEnemyImageView());
                     }
+                    
                     ImageView enemyImage = enemyViews.get(id);
                     enemyImage.setX(virtualPositionToRealPosition_X(e.getX()));
                     enemyImage.setY(virtualPositionToRealPosition_Y(e.getY()));
                 }
-
+                
+                // 해당 step에서 사라진 Enemy의 ImageView 제거
                 for(Enemy e : removedEnemyHashMap.values()) {
                     int id = e.getId();
                     enemyViews.get(id).setVisibility(View.GONE);
@@ -193,17 +226,24 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
     }
 
 
+    /**
+     * 게임 종료 시, 존재하던 Enemy와 Bullet ImageView를 모두 제거하고 재시작 화면으로 전환
+     */
     @Override
     public void readyForRestart() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                // 화면 상에 존재하던 모든 bullet, enemy ImageView 제거
                 clearViews();
+                
+                // 재시작 버튼 생성
                 start.setText("restart");
                 start.setVisibility(View.VISIBLE);
             }
         });
     }
+
 
 
     //----------------------------------------------------------------------
@@ -222,7 +262,10 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
     }
 
 
-    public void setUpUI() {
+    /**
+     * UI 세팅
+     */
+    private void setUpUI() {
         infoLayout = (LinearLayout) findViewById(R.id.info);
         start = (Button) findViewById(R.id.start);
         spaceship = (ImageView) findViewById(R.id.spaceship);
@@ -234,7 +277,10 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
     }
 
 
-    public void setUpDynamicUI() {
+    /**
+     * 동적 ImageView를 관리하기 위한 자료구조 세팅
+     */
+    private void setUpDynamicUI() {
         // 동적 ImageView 관리
         setUpLifeViewList();
         enemyViews = new HashMap<>();
@@ -242,6 +288,9 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
     }
 
 
+    /**
+     * 초기 설정된 생명 개수 만큼 life ImageView를 관리할 배열 정의
+     */
     private void setUpLifeViewList() {
         lifeViews = new ImageView[lifeLimit];
         for(int i = 0; i < lifeLimit; i++) {
@@ -250,6 +299,10 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
     }
 
 
+    /**
+     * cannon ImageView 회전
+     * @param progress : seekBar 각도
+     */
     private void rotateCannonView(int progress) {
         //cannon 이미지뷰 회전
         spaceship.setRotation(progress - 90);
@@ -330,11 +383,18 @@ public class MainActivity extends AppCompatActivity implements Contract.View {
         return (realDisplayHeight / Game.virtualHeight) * virtualY;
     }
 
+
+    /**
+     * 화면 상에 존재하는 모든 bullet, enemy ImageView 제거 -> 게임 재시작 시 호출
+     */
     private void clearViews() {
+        // 화면 상에 존재하는 bullet ImageView 제거
         for(ImageView view : bulletViews.values()) {
             view.setVisibility(View.GONE);
         }
         bulletViews.clear();
+        
+        // 화면 상에 존재하는 enemy ImageView 제거
         for(ImageView view : enemyViews.values()) {
             view.setVisibility(View.GONE);
         }
